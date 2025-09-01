@@ -127,15 +127,14 @@
     }
 
     // Device orientation
-    if (window.DeviceOrientationEvent) {
-      window.addEventListener("deviceorientation", e => {
-        if (userArrow && e.alpha !== null && userDot) {
-          currentHeading = e.alpha;
-          const latlng = userDot.getLatLng();
-          const coords = getArrowCoords([latlng.lat, latlng.lng], currentHeading);
-          userArrow.setLatLngs(coords);
-        }
-      });
+    window.addEventListener("deviceorientation", e => {
+      if (userArrow && e.alpha !== null && userDot) {
+        currentHeading = (e.alpha - 90 + 360) % 360; // rotate by -90°
+        const latlng = userDot.getLatLng();
+        const coords = getArrowCoords([latlng.lat, latlng.lng], currentHeading);
+        userArrow.setLatLngs(coords);
+      }
+    });
     }
 
     // Geolocation
@@ -185,3 +184,4 @@
     </script>
 </body>
 </html>
+
