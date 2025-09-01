@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: food-drive
+    env: python
+    plan: free
+    region: oregon
+    repo: https://github.com/99Jonas/ffa-food-drive-map
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    autoDeploy: true
+    healthCheckPath: /
