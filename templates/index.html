@@ -129,7 +129,9 @@
     // Device orientation
     window.addEventListener("deviceorientation", e => {
       if (userArrow && e.alpha !== null && userDot) {
-        currentHeading = (e.alpha + 90 + 360) % 360; // rotate by -90°
+        // Adjust for east/west alignment and flip north/south
+        currentHeading = (360 - e.alpha + 90) % 360; 
+    
         const latlng = userDot.getLatLng();
         const coords = getArrowCoords([latlng.lat, latlng.lng], currentHeading);
         userArrow.setLatLngs(coords);
@@ -183,6 +185,7 @@
     </script>
 </body>
 </html>
+
 
 
 
