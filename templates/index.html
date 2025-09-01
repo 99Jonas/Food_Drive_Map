@@ -10,15 +10,34 @@
     html, body { height: 100%; margin: 0; }
     #map { height: 100%; width: 100%; }
     .user-arrow {
-      width: 20px;
+      width: 20px;          /* fixed size in pixels */
       height: 20px;
       background: blue;
       clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-      transform-origin: center bottom;
+      transform-origin: 50% 75%; /* pivot near bottom for rotation */
+    }
+    .leaflet-control-layers {
+      font-size: 16px; /* increase text size */
+      padding: 6px 10px; /* increase padding */
+    }
+    .leaflet-control-layers label {
+      font-size: 16px; /* increase checkbox label size */
     }
   </style>
 </head>
 <body>
+  <div id="green-counter" style="
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.9);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      z-index: 1000;
+      font-size: 16px;
+  ">Green markers: 0</div>
   <div id="map"></div>
 
   <!-- Socket.IO -->
@@ -46,6 +65,23 @@
     L.control.layers({ "Streets": streets, "Satellite": satellite }).addTo(map);
 
     const markers = {};
+
+    function offsetLatLng(latlng, metersNorth, metersEast) {
+      const earthRadius = 6378137; // meters
+      const dLat = metersNorth / earthRadius * (180 / Math.PI);
+      const dLng = metersEast / (earthRadius * Math.cos(Math.PI * latlng[0] / 180)) * (180 / Math.PI);
+      return [latlng[0] + dLat, latlng[1] + dLng];
+    }
+
+    function rotatePolygon(polygon, angleDeg, originLatLng) {
+      const angle = angleDeg * Math.PI / 180;
+      const coords = polygon.getLatLngs()[0].map(p => {
+        const dLat = (p[0] - originLatLng[0]) * Math.cos(angle) - (p[1] - originLatLng[1]) * Math.sin(angle);
+        const dLng = (p[0] - originLatLng[0]) * Math.sin(angle) + (p[1] - originLatLng[1]) * Math.cos(angle);
+        return [originLatLng[0] + dLat, originLatLng[1] + dLng];
+      });
+      polygon.setLatLngs([coords]);
+    }
 
     map.on('click', e => {
       const house_id = `${e.latlng.lat.toFixed(5)},${e.latlng.lng.toFixed(5)}`;
@@ -78,29 +114,91 @@
       });
     });
 
+    function updateGreenCounter(houses) {
+  const greenCount = Object.values(houses).filter(v => v).length;
+  document.getElementById("green-counter").textContent = `Houses Visited: ${greenCount}`;
+}
+
+// Call this inside the update_houses listener:
+socket.on("update_houses", houses => {
+  Object.entries(houses).forEach(([house_id, visited]) => {
+    let marker = markers[house_id];
+
+    if (!marker) {
+      const [lat, lng] = house_id.split(",").map(Number);
+      marker = L.circleMarker([lat, lng], {
+        radius: 8,
+        fillColor: visited ? "green" : "blue",
+        color: "#000",
+        weight: 1,
+        opacity: 1,
+        fillOpacity: 0.8
+      }).addTo(map);
+
+      marker.on("click", () => {
+        socket.emit("toggle_house", { house_id, lat, lng });
+      });
+
+      markers[house_id] = marker;
+    }
+
+    marker.setStyle({ fillColor: visited ? "green" : "blue" });
+  });
+
+  updateGreenCounter(houses); // <-- update the counter here
+});
+
     // User location dot + heading arrow
     let userDot = null;
     let userArrow = null;
 
     function addUserLocation(latlng) {
+      const circleRadius = 6; // meters
+
       if (!userDot) {
         userDot = L.circle(latlng, {
-          radius: 6,
+          radius: circleRadius,
           color: 'blue',
           fillColor: 'blue',
           fillOpacity: 1,
           weight: 2
         }).addTo(map);
 
-        const arrowIcon = L.divIcon({
-          className: 'user-arrow',
-          iconSize: [20, 20]
-        });
-        userArrow = L.marker(latlng, { icon: arrowIcon, rotationAngle: 0 }).addTo(map);
+        const triangleHeight = 4; // meters
+        const triangleBase = 3;
+
+        const tip = offsetLatLng(latlng, circleRadius + triangleHeight, 0);
+        const left = offsetLatLng(tip, -triangleHeight, -triangleBase / 2);
+        const right = offsetLatLng(tip, -triangleHeight, triangleBase / 2);
+
+        userArrow = L.polygon([tip, left, right], {
+          color: 'blue',
+          fillColor: 'blue',
+          fillOpacity: 1
+        }).addTo(map);
+
       } else {
+        const triangleHeight = 4;
+        const triangleBase = 3;
+
+        const tip = offsetLatLng(latlng, circleRadius + triangleHeight, 0);
+        const left = offsetLatLng(tip, -triangleHeight, -triangleBase / 2);
+        const right = offsetLatLng(tip, -triangleHeight, triangleBase / 2);
+
         userDot.setLatLng(latlng);
-        userArrow.setLatLng(latlng);
+        userArrow.setLatLngs([tip, left, right]);
       }
+    }
+    
+    let currentHeading = 0;
+
+    if (window.DeviceOrientationEvent) {
+      window.addEventListener("deviceorientation", e => {
+        if (userArrow && e.alpha !== null && userDot) {
+          currentHeading = e.alpha;
+          rotatePolygon(userArrow, currentHeading, userDot.getLatLng());
+        }
+      });
     }
 
     // Get geolocation
@@ -115,8 +213,8 @@
     // Optional: use DeviceOrientation API to rotate arrow
     if (window.DeviceOrientationEvent) {
       window.addEventListener("deviceorientation", e => {
-        if (userArrow) {
-          const heading = e.alpha || 0; // alpha = compass heading
+        if (userArrow && e.alpha !== null) {
+          const heading = e.alpha;
           userArrow.getElement().style.transform = `rotate(${heading}deg)`;
         }
       });
