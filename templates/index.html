@@ -47,7 +47,7 @@
   <script>
     const socket = io();
 
-    // Esri Streets and Satellite
+    // Map layers
     const streets = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
       { attribution: 'Tiles © Esri & contributors' }
@@ -66,23 +66,88 @@
 
     const markers = {};
 
+    // Offset by meters
     function offsetLatLng(latlng, metersNorth, metersEast) {
-      const earthRadius = 6378137; // meters
+      const earthRadius = 6378137;
       const dLat = metersNorth / earthRadius * (180 / Math.PI);
       const dLng = metersEast / (earthRadius * Math.cos(Math.PI * latlng[0] / 180)) * (180 / Math.PI);
       return [latlng[0] + dLat, latlng[1] + dLng];
     }
 
-    function rotatePolygon(polygon, angleDeg, originLatLng) {
+    // Rotate point around origin
+    function rotatePoint(origin, point, angleDeg) {
       const angle = angleDeg * Math.PI / 180;
-      const coords = polygon.getLatLngs()[0].map(p => {
-        const dLat = (p[0] - originLatLng[0]) * Math.cos(angle) - (p[1] - originLatLng[1]) * Math.sin(angle);
-        const dLng = (p[0] - originLatLng[0]) * Math.sin(angle) + (p[1] - originLatLng[1]) * Math.cos(angle);
-        return [originLatLng[0] + dLat, originLatLng[1] + dLng];
-      });
-      polygon.setLatLngs([coords]);
+      const latDiff = point[0] - origin[0];
+      const lngDiff = point[1] - origin[1];
+      const rotatedLat = latDiff * Math.cos(angle) - lngDiff * Math.sin(angle) + origin[0];
+      const rotatedLng = latDiff * Math.sin(angle) + lngDiff * Math.cos(angle) + origin[1];
+      return [rotatedLat, rotatedLng];
     }
 
+    // Compute arrow coordinates
+    function getArrowCoords(latlng, heading) {
+      const circleRadius = 6;
+      const triangleHeight = 4;
+      const triangleBase = 3;
+
+      const tip = offsetLatLng(latlng, circleRadius + triangleHeight, 0);
+      const left = offsetLatLng(tip, -triangleHeight, -triangleBase / 2);
+      const right = offsetLatLng(tip, -triangleHeight, triangleBase / 2);
+
+      const rotatedTip = rotatePoint(latlng, tip, heading);
+      const rotatedLeft = rotatePoint(latlng, left, heading);
+      const rotatedRight = rotatePoint(latlng, right, heading);
+
+      return [rotatedTip, rotatedLeft, rotatedRight];
+    }
+
+    // User dot and arrow
+    let userDot = null;
+    let userArrow = null;
+    let currentHeading = 0;
+
+    // Add or update user location
+    function addUserLocation(latlng) {
+      if (!userDot) {
+        userDot = L.circle(latlng, {
+          radius: 6,
+          color: 'blue',
+          fillColor: 'blue',
+          fillOpacity: 1,
+          weight: 2
+        }).addTo(map);
+
+        const coords = getArrowCoords([latlng.lat, latlng.lng], 0);
+        userArrow = L.polygon(coords, { color: 'blue', fillColor: 'blue', fillOpacity: 1 }).addTo(map);
+      } else {
+        userDot.setLatLng(latlng);
+        const coords = getArrowCoords([latlng.lat, latlng.lng], currentHeading);
+        userArrow.setLatLngs(coords);
+      }
+    }
+
+    // Device orientation
+    if (window.DeviceOrientationEvent) {
+      window.addEventListener("deviceorientation", e => {
+        if (userArrow && e.alpha !== null && userDot) {
+          currentHeading = e.alpha;
+          const latlng = userDot.getLatLng();
+          const coords = getArrowCoords([latlng.lat, latlng.lng], currentHeading);
+          userArrow.setLatLngs(coords);
+        }
+      });
+    }
+
+    // Geolocation
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        const latlng = [pos.coords.latitude, pos.coords.longitude];
+        map.setView(latlng, 18);
+        addUserLocation({ lat: latlng[0], lng: latlng[1] });
+      }, err => console.warn("Geolocation failed:", err.message));
+    }
+
+    // Handle houses
     map.on('click', e => {
       const house_id = `${e.latlng.lat.toFixed(5)},${e.latlng.lng.toFixed(5)}`;
       socket.emit("toggle_house", { house_id, lat: e.latlng.lat, lng: e.latlng.lng });
@@ -112,113 +177,11 @@
 
         marker.setStyle({ fillColor: visited ? "green" : "blue" });
       });
+
+      // Update counter
+      const greenCount = Object.values(houses).filter(v => v).length;
+      document.getElementById("green-counter").textContent = `Houses Visited: ${greenCount}`;
     });
-
-    function updateGreenCounter(houses) {
-  const greenCount = Object.values(houses).filter(v => v).length;
-  document.getElementById("green-counter").textContent = `Houses Visited: ${greenCount}`;
-}
-
-// Call this inside the update_houses listener:
-socket.on("update_houses", houses => {
-  Object.entries(houses).forEach(([house_id, visited]) => {
-    let marker = markers[house_id];
-
-    if (!marker) {
-      const [lat, lng] = house_id.split(",").map(Number);
-      marker = L.circleMarker([lat, lng], {
-        radius: 8,
-        fillColor: visited ? "green" : "blue",
-        color: "#000",
-        weight: 1,
-        opacity: 1,
-        fillOpacity: 0.8
-      }).addTo(map);
-
-      marker.on("click", () => {
-        socket.emit("toggle_house", { house_id, lat, lng });
-      });
-
-      markers[house_id] = marker;
-    }
-
-    marker.setStyle({ fillColor: visited ? "green" : "blue" });
-  });
-
-  updateGreenCounter(houses); // <-- update the counter here
-});
-
-    // User location dot + heading arrow
-    let userDot = null;
-    let userArrow = null;
-
-    function addUserLocation(latlng) {
-      const circleRadius = 6; // meters
-
-      if (!userDot) {
-        userDot = L.circle(latlng, {
-          radius: circleRadius,
-          color: 'blue',
-          fillColor: 'blue',
-          fillOpacity: 1,
-          weight: 2
-        }).addTo(map);
-
-        const triangleHeight = 4; // meters
-        const triangleBase = 3;
-
-        const tip = offsetLatLng(latlng, circleRadius + triangleHeight, 0);
-        const left = offsetLatLng(tip, -triangleHeight, -triangleBase / 2);
-        const right = offsetLatLng(tip, -triangleHeight, triangleBase / 2);
-
-        userArrow = L.polygon([tip, left, right], {
-          color: 'blue',
-          fillColor: 'blue',
-          fillOpacity: 1
-        }).addTo(map);
-
-      } else {
-        const triangleHeight = 4;
-        const triangleBase = 3;
-
-        const tip = offsetLatLng(latlng, circleRadius + triangleHeight, 0);
-        const left = offsetLatLng(tip, -triangleHeight, -triangleBase / 2);
-        const right = offsetLatLng(tip, -triangleHeight, triangleBase / 2);
-
-        userDot.setLatLng(latlng);
-        userArrow.setLatLngs([tip, left, right]);
-      }
-    }
-    
-    let currentHeading = 0;
-
-    if (window.DeviceOrientationEvent) {
-      window.addEventListener("deviceorientation", e => {
-        if (userArrow && e.alpha !== null && userDot) {
-          currentHeading = e.alpha;
-          rotatePolygon(userArrow, currentHeading, userDot.getLatLng());
-        }
-      });
-    }
-
-    // Get geolocation
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(pos => {
-        const latlng = [pos.coords.latitude, pos.coords.longitude];
-        map.setView(latlng, 18);
-        addUserLocation(latlng);
-      }, err => console.warn("Geolocation failed:", err.message));
-    }
-
-    // Optional: use DeviceOrientation API to rotate arrow
-    if (window.DeviceOrientationEvent) {
-      window.addEventListener("deviceorientation", e => {
-        if (userArrow && e.alpha !== null) {
-          const heading = e.alpha;
-          userArrow.getElement().style.transform = `rotate(${heading}deg)`;
-        }
-      });
-    }
-  </script>
+    </script>
 </body>
 </html>
