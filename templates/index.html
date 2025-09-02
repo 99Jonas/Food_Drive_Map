@@ -69,7 +69,7 @@
   <div id="map"></div>
   <button id="return-btn" style="
     position: absolute;
-    bottom: 20px;      /* 10px from bottom */
+    bottom: 60px;      /* 10px from bottom */
     right: 10px;       /* 10px from right */
     z-index: 1000;     /* above the map */
     padding: 6px 12px;
@@ -78,6 +78,18 @@
     font-weight: bold;
     cursor: pointer;
   ">↗</button>
+  
+  <button id="reset-btn" style="
+    position: absolute;
+    bottom: 20px;      /* 10px from bottom */
+    right: 10px;       /* 10px from right */
+    z-index: 1000;     /* above the map */
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: white;
+    font-weight: bold;
+    cursor: pointer;
+  ">Reset</button>
   
   <!-- Socket.IO -->
   <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
@@ -255,6 +267,20 @@
             zoomToLocation(map, latlng.lat, latlng.lng, 18);
         }
     };
+
+    const resetBtn = document.getElementById("reset-btn");
+
+    resetBtn.addEventListener("click", () => {
+      const password = prompt("Enter password to reset:");
+
+      // Replace 'yourPassword' with your actual password
+      if (password === "9999") {
+        socket.emit("reset_houses"); // Emit the event to the server
+      } else {
+        alert("Incorrect password!");
+      }
+    });
     </script>
 </body>
 </html>
+
