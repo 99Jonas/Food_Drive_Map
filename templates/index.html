@@ -31,9 +31,12 @@
       border-left: 5px solid transparent;
       border-right: 5px solid transparent;
       border-bottom: 8px solid blue;
+    
       position: absolute;
-      top: -4px; /* sits above dot */
-      left: 5px;
+      top: 1px;   /* adjust to sit on top of circle */
+      left: 5px;  /* center horizontally over circle */
+    
+      /* rotate around bottom center */
       transform-origin: 50% 100%;
     }
     .leaflet-control-layers {
@@ -172,6 +175,7 @@
     </script>
 </body>
 </html>
+
 
 
 
