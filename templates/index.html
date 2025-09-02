@@ -13,6 +13,7 @@
       position: relative;
       width: 20px;
       height: 20px;
+      transform-origin: 50% 50%; /* rotate around center of the marker */
     }
     
     .user-dot {
@@ -21,9 +22,9 @@
       background: blue;
       border-radius: 50%;
       position: absolute;
-      top: 5px;   /* center circle in 20x20 box */
+      top: 5px;
       left: 5px;
-      z-index: 2; /* above arrow if needed */
+      z-index: 2;
     }
     
     .user-arrow {
@@ -33,12 +34,9 @@
       border-right: 5px solid transparent;
       border-bottom: 8px solid blue;
       position: absolute;
-    
-      /* position base at circle edge (top center of circle) */
-      top: -8px;  /* move triangle above the circle */
-      left: 5px;  /* center horizontally over circle */
-    
-      transform-origin: 50% 100%; /* rotate around base touching circle */
+      top: -8px;  /* triangle above the circle */
+      left: 5px;
+      transform-origin: 50% 100%; /* rotates around its base */
       z-index: 1;
     }
     .leaflet-control-layers {
@@ -98,46 +96,49 @@
         <div class="user-arrow"></div>
       `,
       iconSize: [20, 20], // total pixel size
-      iconAnchor: [10, 10] // center anchor
+      iconAnchor: [10, 10] // center of rotation
     });
-
+    
     // Add user marker
     let userMarker = null;
     let currentHeading = 0;
-
+    
     function addUserLocation(latlng) {
       if (!userMarker) {
         userMarker = L.marker(latlng, { icon: userIcon }).addTo(map);
       } else {
         userMarker.setLatLng(latlng);
       }
-      // Rotate arrow with CSS
-      const arrowEl = userMarker.getElement().querySelector(".user-arrow");
-      arrowEl.style.transform = `rotate(${currentHeading}deg)`;
-    }
-
-    // Device orientation
-   window.addEventListener("deviceorientationabsolute", e => {
-    if (userMarker && e.alpha !== null) {
-      currentHeading = e.alpha;
-  
-      // get the arrow div inside the marker
-      const arrowEl = userMarker.getElement().querySelector(".user-arrow");
-      if (arrowEl) {
-        arrowEl.style.transform = `rotate(${currentHeading}deg)`;
+    
+      // Rotate the whole marker container
+      const markerEl = userMarker.getElement();
+      if (markerEl) {
+        markerEl.style.transform = `rotate(${currentHeading}deg)`;
+        markerEl.style.transformOrigin = "50% 50%"; // center of marker
       }
     }
-  });
-
-
+    
+    // Device orientation
+    window.addEventListener("deviceorientationabsolute", e => {
+      if (userMarker && e.alpha !== null) {
+        currentHeading = e.alpha;
+    
+        // Rotate the whole marker container
+        const markerEl = userMarker.getElement();
+        if (markerEl) {
+          markerEl.style.transform = `rotate(${currentHeading}deg)`;
+          markerEl.style.transformOrigin = "50% 50%";
+        }
+      }
+    });
+    
     // Geolocation (continuous tracking)
     if (navigator.geolocation) {
       navigator.geolocation.watchPosition(pos => {
         const latlng = [pos.coords.latitude, pos.coords.longitude];
         addUserLocation({ lat: latlng[0], lng: latlng[1] });
-
+    
         // Optionally keep centering map on user
-        // comment this out if you want free panning
         map.setView(latlng, 18);
       },
       err => console.warn("Geolocation failed:", err.message),
@@ -186,6 +187,7 @@
     </script>
 </body>
 </html>
+
 
 
 
