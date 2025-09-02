@@ -46,7 +46,7 @@ def remove_house(data):
 
     socketio.emit("update_houses", houses)
 
-@socketio.on("reset_all")
+@socketio.on("reset_houses")
 def reset_all():
     """Optional: reset all houses to unvisited"""
     houses.clear()
@@ -54,4 +54,5 @@ def reset_all():
 
 if __name__ == "__main__":
     socketio.run(app, debug=True, host="0.0.0.0", port=5000)
+
 
