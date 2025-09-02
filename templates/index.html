@@ -69,39 +69,42 @@
   <div id="map"></div>
   <button id="return-btn" style="
     position: absolute;
-    bottom: 100px;      /* 10px from bottom */
-    right: 10px;       /* 10px from right */
-    z-index: 1000;     /* above the map */
-    padding: 6px 12px;
-    border-radius: 8px;
+    bottom: 220px;
+    right: 10px;
+    z-index: 1000;
+    padding: 15px 30px;       /* 6*2.5 = 15, 12*2.5 = 30 */
+    border-radius: 20px;      /* optional: scale slightly for proportion */
     background: white;
     font-weight: bold;
+    font-size: 2.5rem;        /* scales text 2.5× */
     cursor: pointer;
   ">↗</button>
 
   <button id="reset-btn" style="
-    position: absolute;
-    bottom: 60px;      /* 10px from bottom */
-    right: 10px;       /* 10px from right */
-    z-index: 1000;     /* above the map */
-    padding: 6px 12px;
-    border-radius: 8px;
-    background: white;
-    font-weight: bold;
-    cursor: pointer;
-  ">Reset</button>
+      position: absolute;
+      bottom: 120px;
+      right: 10px;
+      z-index: 1000;
+      padding: 15px 30px;
+      border-radius: 20px;
+      background: white;
+      font-weight: bold;
+      font-size: 2.5rem;
+      cursor: pointer;
+    ">Reset</button>
 
   <button id="undo-btn" style="
-    position: absolute;
-    bottom: 20px;      /* 10px from bottom */
-    right: 10px;       /* 10px from right */
-    z-index: 1000;     /* above the map */
-    padding: 6px 12px;
-    border-radius: 8px;
-    background: white;
-    font-weight: bold;
-    cursor: pointer;
-  ">Undo Remove</button>
+      position: absolute;
+      bottom: 20px;
+      right: 10px;
+      z-index: 1000;
+      padding: 15px 30px;
+      border-radius: 20px;
+      background: white;
+      font-weight: bold;
+      font-size: 2.5rem;
+      cursor: pointer;
+    ">Undo Remove</button>
 
   <!-- Socket.IO -->
   <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
@@ -319,3 +322,4 @@
     </script>
 </body>
 </html>
+
