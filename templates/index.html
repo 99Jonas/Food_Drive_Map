@@ -186,7 +186,7 @@
 
     window.addEventListener("deviceorientationabsolute", e => {
       if (userMarker && e.alpha !== null) {
-        currentHeading = 180 - e.alpha + 90;
+        currentHeading = -e.alpha;
         const rotateEl = userMarker.getElement().querySelector(".user-rotate");
         if (rotateEl) {
           rotateEl.style.transform = `rotate(${currentHeading}deg)`;
