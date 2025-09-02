@@ -45,11 +45,11 @@
       z-index: 1;
     }
     .leaflet-control-layers {
-      font-size: 16px; /* increase text size */
+      font-size: 30px; /* increase text size */
       padding: 6px 10px; /* increase padding */
     }
     .leaflet-control-layers label {
-      font-size: 16px; /* increase checkbox label size */
+      font-size: 30px; /* increase checkbox label size */
     }
   </style>
 </head>
@@ -64,7 +64,7 @@
       border-radius: 8px;
       font-weight: bold;
       z-index: 1000;
-      font-size: 16px;
+      font-size: 30px;
   ">Green markers: 0</div>
   <div id="map"></div>
   <button id="return-btn" style="
@@ -117,17 +117,30 @@
     // Map layers
     const streets = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-      { attribution: 'Tiles © Esri & contributors' }
+      {
+        attribution: 'Tiles © Esri & contributors',
+        maxZoom: 22,        // allow zooming further
+        maxNativeZoom: 19   // Esri tiles only go to ~19
+      }
     );
+
     const satellite = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      { attribution: 'Tiles © Esri' }
+      {
+        attribution: 'Tiles © Esri',
+        maxZoom: 22,
+        maxNativeZoom: 19   // World Imagery usually goes to ~19 or 20
+      }
     );
 
     const map = L.map('map', {
       center: [37.8, -96],
       zoom: 14,
-      layers: [streets]
+      layers: [streets],
+      zoomSnap: 0.25,   // allow fractional zooms
+      zoomDelta: 0.25,  // smaller zoom steps
+      minZoom: 1,
+      maxZoom: 22
     });
     L.control.layers({ "Streets": streets, "Satellite": satellite }).addTo(map);
 
@@ -322,4 +335,5 @@
     </script>
 </body>
 </html>
+
 
