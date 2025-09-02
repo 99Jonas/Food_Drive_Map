@@ -113,12 +113,14 @@
 
     // Device orientation
    window.addEventListener("deviceorientationabsolute", e => {
-    if (userArrow && e.alpha !== null && userDot) {
-      // e.alpha: 0 = North, 90 = East, 180 = South, 270 = West
-      currentHeading = e.alpha; // just use alpha directly
-      const latlng = userDot.getLatLng();
-      const coords = getArrowCoords([latlng.lat, latlng.lng], currentHeading);
-      userArrow.setLatLngs(coords);
+    if (userMarker && e.alpha !== null) {
+      currentHeading = e.alpha;
+  
+      // get the arrow div inside the marker
+      const arrowEl = userMarker.getElement().querySelector(".user-arrow");
+      if (arrowEl) {
+        arrowEl.style.transform = `rotate(${currentHeading}deg)`;
+      }
     }
   });
 
@@ -170,6 +172,7 @@
     </script>
 </body>
 </html>
+
 
 
 
