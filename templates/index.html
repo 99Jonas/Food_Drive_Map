@@ -67,7 +67,18 @@
       font-size: 16px;
   ">Green markers: 0</div>
   <div id="map"></div>
-
+  <button id="return-btn" style="
+    position: absolute;
+    bottom: 20px;      /* 10px from bottom */
+    right: 10px;       /* 10px from right */
+    z-index: 1000;     /* above the map */
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: white;
+    font-weight: bold;
+    cursor: pointer;
+  ">↗</button>
+  
   <!-- Socket.IO -->
   <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -132,6 +143,11 @@
         }
       }
     });
+
+    function zoomToLocation(map, lat, lng, zoomLevel = 18) {
+      const latlng = [lat, lng];
+      map.setView(latlng, zoomLevel);
+    }
     
     let firstUpdate = true;
 
@@ -153,21 +169,66 @@
       });
     }
 
-    // Handle houses
-    map.on('click', e => {
-      const house_id = `${e.latlng.lat.toFixed(5)},${e.latlng.lng.toFixed(5)}`;
-      socket.emit("toggle_house", { house_id, lat: e.latlng.lat, lng: e.latlng.lng });
+    const HOUSE_TOLERANCE = 10;
+
+    map.on("click", e => {
+      const clickLatLng = e.latlng;
+
+      let tooClose = false;
+      let blockingHouse = null;
+
+      // Check each existing marker
+      Object.entries(markers).forEach(([house_id, marker]) => {
+        const markerLatLng = marker.getLatLng();
+        const dist = clickLatLng.distanceTo(markerLatLng);
+        if (dist < HOUSE_TOLERANCE) {
+          tooClose = true;
+          blockingHouse = {
+            house_id: `${markerLatLng.lat.toFixed(5)},${markerLatLng.lng.toFixed(5)}`,
+            lat: markerLatLng.lat,
+            lng: markerLatLng.lng
+          };
+        }
+      });
+
+      if (!tooClose) {
+        const house_id = `${clickLatLng.lat.toFixed(5)},${clickLatLng.lng.toFixed(5)}`;
+        socket.emit("add_house", {
+          house_id,
+          lat: clickLatLng.lat,
+          lng: clickLatLng.lng
+        });
+      } else if (blockingHouse) {
+        socket.emit("remove_house", {
+          house_id: blockingHouse.house_id,
+          lat: blockingHouse.lat,
+          lng: blockingHouse.lng
+        });
+      }
     });
 
     socket.on("update_houses", houses => {
-      Object.entries(houses).forEach(([house_id, visited]) => {
+      const currentHouseIds = new Set(Object.keys(houses));
+
+      // Remove markers that no longer exist
+      Object.keys(markers).forEach(house_id => {
+        if (!currentHouseIds.has(house_id)) {
+          map.removeLayer(markers[house_id]);
+          delete markers[house_id];
+        }
+      });
+
+      // Add markers for current houses
+      Object.entries(houses).forEach(([house_id, data]) => {
+        if (!house_id || house_id === "None") return;
+
         let marker = markers[house_id];
+        const { lat, lng } = data;
 
         if (!marker) {
-          const [lat, lng] = house_id.split(",").map(Number);
           marker = L.circleMarker([lat, lng], {
             radius: 8,
-            fillColor: visited ? "green" : "blue",
+            fillColor: "green",   // always green
             color: "#000",
             weight: 1,
             opacity: 1,
@@ -175,32 +236,25 @@
           }).addTo(map);
 
           marker.on("click", () => {
-            socket.emit("toggle_house", { house_id, lat, lng });
+            socket.emit("house_house", { house_id, lat, lng });
           });
 
           markers[house_id] = marker;
         }
-
-        marker.setStyle({ fillColor: visited ? "green" : "blue" });
       });
 
       // Update counter
-      const greenCount = Object.values(houses).filter(v => v).length;
+      const greenCount = Object.keys(houses).length;
       document.getElementById("green-counter").textContent = `Houses Visited: ${greenCount}`;
     });
+
+    const zoomButton = document.getElementById('return-btn');
+    zoomButton.onclick = () => {
+        if (userMarker) {
+            const latlng = userMarker.getLatLng();
+            zoomToLocation(map, latlng.lat, latlng.lng, 18);
+        }
+    };
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
