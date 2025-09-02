@@ -111,6 +111,35 @@
     const socket = io();
     let removedHouses = [];
 
+    // 1. Request permission on iOS and set up orientation listener
+    async function setupOrientation() {
+      if (typeof DeviceOrientationEvent.requestPermission === "function") {
+        try {
+          const permission = await DeviceOrientationEvent.requestPermission();
+          if (permission !== "granted") return;
+        } catch (err) {
+          console.error("Device orientation permission denied:", err);
+          return;
+        }
+      }
+    
+      window.addEventListener("deviceorientation", e => {
+        if (userMarker && e.alpha !== null) {
+          let heading = e.webkitCompassHeading || e.alpha;
+          if (typeof heading !== "number") return;
+    
+          currentHeading = -heading; // adjust so marker points correctly
+          const rotateEl = userMarker.getElement().querySelector(".user-rotate");
+          if (rotateEl) {
+            rotateEl.style.transform = `rotate(${currentHeading}deg)`;
+          }
+        }
+      });
+    }
+    
+    // 2. Run setup at start
+    setupOrientation();
+
     // Map layers
     const streets = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
@@ -330,6 +359,7 @@
     </script>
 </body>
 </html>
+
 
 
 
