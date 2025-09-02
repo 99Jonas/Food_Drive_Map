@@ -14,13 +14,13 @@
       width: 20px;
       height: 20px;
     }
-    
+
     .user-rotate {
       width: 100%;
       height: 100%;
       transform-origin: 50% 50%; /* rotate around center of marker */
     }
-    
+
     .user-dot {
       width: 10px;
       height: 10px;
@@ -31,7 +31,7 @@
       left: 5px;
       z-index: 2;
     }
-    
+
     .user-arrow {
       width: 0;
       height: 0;
@@ -69,7 +69,7 @@
   <div id="map"></div>
   <button id="return-btn" style="
     position: absolute;
-    bottom: 60px;      /* 10px from bottom */
+    bottom: 100px;      /* 10px from bottom */
     right: 10px;       /* 10px from right */
     z-index: 1000;     /* above the map */
     padding: 6px 12px;
@@ -78,8 +78,20 @@
     font-weight: bold;
     cursor: pointer;
   ">↗</button>
-  
+
   <button id="reset-btn" style="
+    position: absolute;
+    bottom: 60px;      /* 10px from bottom */
+    right: 10px;       /* 10px from right */
+    z-index: 1000;     /* above the map */
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: white;
+    font-weight: bold;
+    cursor: pointer;
+  ">Reset</button>
+
+  <button id="undo-btn" style="
     position: absolute;
     bottom: 20px;      /* 10px from bottom */
     right: 10px;       /* 10px from right */
@@ -89,14 +101,15 @@
     background: white;
     font-weight: bold;
     cursor: pointer;
-  ">Reset</button>
-  
+  ">Undo Remove</button>
+
   <!-- Socket.IO -->
   <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
   <script>
     const socket = io();
+    let removedHouses = [];
 
     // Map layers
     const streets = L.tileLayer(
@@ -117,6 +130,18 @@
 
     const markers = {};
 
+    function updateUndoButton() {
+      if (removedHouses.length === 0) {
+        undoBtn.disabled = true;        // disable button
+        undoBtn.style.background = "#ccc"; // gray background
+        undoBtn.style.cursor = "not-allowed";
+      } else {
+        undoBtn.disabled = false;
+        undoBtn.style.background = "white"; // normal color
+        undoBtn.style.cursor = "pointer";
+      }
+    }
+
     const userIcon = L.divIcon({
       className: "user-marker",
       html: `
@@ -128,24 +153,24 @@
       iconSize: [20, 20], // pixel size of the marker box
       iconAnchor: [10, 10] // center point
     });
-    
+
     // Add user marker
     let userMarker = null;
     let currentHeading = 0;
-    
+
     function addUserLocation(latlng) {
       if (!userMarker) {
         userMarker = L.marker(latlng, { icon: userIcon }).addTo(map);
       } else {
         userMarker.setLatLng(latlng);
       }
-    
+
       const rotateEl = userMarker.getElement().querySelector(".user-rotate");
       if (rotateEl) {
         rotateEl.style.transform = `rotate(${currentHeading}deg)`;
       }
     }
-    
+
     window.addEventListener("deviceorientationabsolute", e => {
       if (userMarker && e.alpha !== null) {
         currentHeading = e.alpha;
@@ -160,14 +185,14 @@
       const latlng = [lat, lng];
       map.setView(latlng, zoomLevel);
     }
-    
+
     let firstUpdate = true;
 
     if (navigator.geolocation) {
       navigator.geolocation.watchPosition(pos => {
         const latlng = [pos.coords.latitude, pos.coords.longitude];
         addUserLocation({ lat: latlng[0], lng: latlng[1] });
-    
+
         if (firstUpdate) {
           map.setView(latlng, 18); // only the first time
           firstUpdate = false;
@@ -211,6 +236,8 @@
           lng: clickLatLng.lng
         });
       } else if (blockingHouse) {
+        removedHouses.push({house_id: blockingHouse.house_id, lat: blockingHouse.lat, lng: blockingHouse.lng});
+        updateUndoButton();
         socket.emit("remove_house", {
           house_id: blockingHouse.house_id,
           lat: blockingHouse.lat,
@@ -280,7 +307,15 @@
         alert("Incorrect password!");
       }
     });
+
+    const undoBtn = document.getElementById("undo-btn");
+
+    undoBtn.addEventListener("click", () => {
+      let removed = removedHouses.pop();
+      socket.emit("add_house", removed);
+      updateUndoButton();
+    });
+    updateUndoButton();
     </script>
 </body>
 </html>
-
