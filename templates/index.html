@@ -14,30 +14,32 @@
       width: 20px;
       height: 20px;
     }
-
+    
     .user-dot {
       width: 10px;
       height: 10px;
       background: blue;
       border-radius: 50%;
       position: absolute;
-      top: 5px;
+      top: 5px;   /* center circle in 20x20 box */
       left: 5px;
+      z-index: 2; /* above arrow if needed */
     }
-
+    
     .user-arrow {
       width: 0;
       height: 0;
       border-left: 5px solid transparent;
       border-right: 5px solid transparent;
       border-bottom: 8px solid blue;
-    
       position: absolute;
-      top: 1px;   /* adjust to sit on top of circle */
+    
+      /* position base at circle edge (top center of circle) */
+      top: -8px;  /* move triangle above the circle */
       left: 5px;  /* center horizontally over circle */
     
-      /* rotate around bottom center */
-      transform-origin: 50% 100%;
+      transform-origin: 50% 100%; /* rotate around base touching circle */
+      z-index: 1;
     }
     .leaflet-control-layers {
       font-size: 16px; /* increase text size */
@@ -184,6 +186,7 @@
     </script>
 </body>
 </html>
+
 
 
 
