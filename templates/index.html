@@ -9,12 +9,32 @@
   <style>
     html, body { height: 100%; margin: 0; }
     #map { height: 100%; width: 100%; }
-    .user-arrow {
-      width: 20px;          /* fixed size in pixels */
+    .user-marker {
+      position: relative;
+      width: 20px;
       height: 20px;
+    }
+
+    .user-dot {
+      width: 10px;
+      height: 10px;
       background: blue;
-      clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-      transform-origin: 50% 75%; /* pivot near bottom for rotation */
+      border-radius: 50%;
+      position: absolute;
+      top: 5px;
+      left: 5px;
+    }
+
+    .user-arrow {
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-bottom: 8px solid blue;
+      position: absolute;
+      top: -4px; /* sits above dot */
+      left: 5px;
+      transform-origin: 50% 100%;
     }
     .leaflet-control-layers {
       font-size: 16px; /* increase text size */
@@ -66,64 +86,29 @@
 
     const markers = {};
 
-    // Offset by meters
-    function offsetLatLng(latlng, metersNorth, metersEast) {
-      const earthRadius = 6378137;
-      const dLat = metersNorth / earthRadius * (180 / Math.PI);
-      const dLng = metersEast / (earthRadius * Math.cos(Math.PI * latlng[0] / 180)) * (180 / Math.PI);
-      return [latlng[0] + dLat, latlng[1] + dLng];
-    }
+    const userIcon = L.divIcon({
+      className: "user-marker",
+      html: `
+        <div class="user-dot"></div>
+        <div class="user-arrow"></div>
+      `,
+      iconSize: [20, 20], // total pixel size
+      iconAnchor: [10, 10] // center anchor
+    });
 
-    // Rotate point around origin
-    function rotatePoint(origin, point, angleDeg) {
-      const angle = angleDeg * Math.PI / 180;
-      const latDiff = point[0] - origin[0];
-      const lngDiff = point[1] - origin[1];
-      const rotatedLat = latDiff * Math.cos(angle) - lngDiff * Math.sin(angle) + origin[0];
-      const rotatedLng = latDiff * Math.sin(angle) + lngDiff * Math.cos(angle) + origin[1];
-      return [rotatedLat, rotatedLng];
-    }
-
-    // Compute arrow coordinates
-    function getArrowCoords(latlng, heading) {
-      const circleRadius = 6;
-      const triangleHeight = 4;
-      const triangleBase = 3;
-
-      const tip = offsetLatLng(latlng, circleRadius + triangleHeight, 0);
-      const left = offsetLatLng(tip, -triangleHeight, -triangleBase / 2);
-      const right = offsetLatLng(tip, -triangleHeight, triangleBase / 2);
-
-      const rotatedTip = rotatePoint(latlng, tip, heading);
-      const rotatedLeft = rotatePoint(latlng, left, heading);
-      const rotatedRight = rotatePoint(latlng, right, heading);
-
-      return [rotatedTip, rotatedLeft, rotatedRight];
-    }
-
-    // User dot and arrow
-    let userDot = null;
-    let userArrow = null;
+    // Add user marker
+    let userMarker = null;
     let currentHeading = 0;
 
-    // Add or update user location
     function addUserLocation(latlng) {
-      if (!userDot) {
-        userDot = L.circle(latlng, {
-          radius: 6,
-          color: 'blue',
-          fillColor: 'blue',
-          fillOpacity: 1,
-          weight: 2
-        }).addTo(map);
-
-        const coords = getArrowCoords([latlng.lat, latlng.lng], 0);
-        userArrow = L.polygon(coords, { color: 'blue', fillColor: 'blue', fillOpacity: 1 }).addTo(map);
+      if (!userMarker) {
+        userMarker = L.marker(latlng, { icon: userIcon }).addTo(map);
       } else {
-        userDot.setLatLng(latlng);
-        const coords = getArrowCoords([latlng.lat, latlng.lng], currentHeading);
-        userArrow.setLatLngs(coords);
+        userMarker.setLatLng(latlng);
       }
+      // Rotate arrow with CSS
+      const arrowEl = userMarker.getElement().querySelector(".user-arrow");
+      arrowEl.style.transform = `rotate(${currentHeading}deg)`;
     }
 
     // Device orientation
@@ -185,6 +170,7 @@
     </script>
 </body>
 </html>
+
 
 
 
