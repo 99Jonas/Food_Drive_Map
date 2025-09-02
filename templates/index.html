@@ -127,16 +127,16 @@
     }
 
     // Device orientation
-    window.addEventListener("deviceorientation", e => {
-      if (userArrow && e.alpha !== null && userDot) {
-        // Adjust for east/west alignment and flip north/south
-        currentHeading = (180 - e.alpha + 90) % 360; 
-    
-        const latlng = userDot.getLatLng();
-        const coords = getArrowCoords([latlng.lat, latlng.lng], currentHeading);
-        userArrow.setLatLngs(coords);
-      }
-    });
+   window.addEventListener("deviceorientationabsolute", e => {
+    if (userArrow && e.alpha !== null && userDot) {
+      // e.alpha: 0 = North, 90 = East, 180 = South, 270 = West
+      currentHeading = e.alpha; // just use alpha directly
+      const latlng = userDot.getLatLng();
+      const coords = getArrowCoords([latlng.lat, latlng.lng], currentHeading);
+      userArrow.setLatLngs(coords);
+    }
+  });
+
 
     // Geolocation
     if (navigator.geolocation) {
@@ -185,6 +185,7 @@
     </script>
 </body>
 </html>
+
 
 
 
