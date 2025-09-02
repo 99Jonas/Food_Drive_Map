@@ -69,27 +69,27 @@
   <div id="map"></div>
   <button id="return-btn" style="
     position: absolute;
-    bottom: 220px;
+    bottom: 160px;
     right: 10px;
     z-index: 1000;
     padding: 15px 30px;       /* 6*2.5 = 15, 12*2.5 = 30 */
     border-radius: 20px;      /* optional: scale slightly for proportion */
     background: white;
     font-weight: bold;
-    font-size: 2.5rem;        /* scales text 2.5× */
+    font-size: 2rem;        /* scales text 2.5× */
     cursor: pointer;
   ">↗</button>
 
   <button id="reset-btn" style="
       position: absolute;
-      bottom: 120px;
+      bottom: 80px;
       right: 10px;
       z-index: 1000;
       padding: 15px 30px;
       border-radius: 20px;
       background: white;
       font-weight: bold;
-      font-size: 2.5rem;
+      font-size: 2rem;
       cursor: pointer;
     ">Reset</button>
 
@@ -102,7 +102,7 @@
       border-radius: 20px;
       background: white;
       font-weight: bold;
-      font-size: 2.5rem;
+      font-size: 2rem;
       cursor: pointer;
     ">Undo Remove</button>
 
@@ -166,8 +166,8 @@
           <div class="user-arrow"></div>
         </div>
       `,
-      iconSize: [20, 20], // pixel size of the marker box
-      iconAnchor: [10, 10] // center point
+      iconSize: [40, 40],      // doubled from 20×20
+      iconAnchor: [20, 20]     // keep centered
     });
 
     // Add user marker
@@ -335,5 +335,6 @@
     </script>
 </body>
 </html>
+
 
 
