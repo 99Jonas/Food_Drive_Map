@@ -13,7 +13,12 @@
       position: relative;
       width: 20px;
       height: 20px;
-      transform-origin: 50% 50%; /* rotate around center of the marker */
+    }
+    
+    .user-rotate {
+      width: 100%;
+      height: 100%;
+      transform-origin: 50% 50%; /* rotate around center of marker */
     }
     
     .user-dot {
@@ -34,9 +39,9 @@
       border-right: 5px solid transparent;
       border-bottom: 8px solid blue;
       position: absolute;
-      top: -8px;  /* triangle above the circle */
-      left: 5px;
-      transform-origin: 50% 100%; /* rotates around its base */
+      top: -8px;  /* places triangle above circle */
+      left: 5px;  /* centers triangle horizontally */
+      transform-origin: 50% 100%;
       z-index: 1;
     }
     .leaflet-control-layers {
@@ -92,11 +97,13 @@
     const userIcon = L.divIcon({
       className: "user-marker",
       html: `
-        <div class="user-dot"></div>
-        <div class="user-arrow"></div>
+        <div class="user-rotate">
+          <div class="user-dot"></div>
+          <div class="user-arrow"></div>
+        </div>
       `,
-      iconSize: [20, 20], // total pixel size
-      iconAnchor: [10, 10] // center of rotation
+      iconSize: [20, 20], // pixel size of the marker box
+      iconAnchor: [10, 10] // center point
     });
     
     // Add user marker
@@ -110,40 +117,37 @@
         userMarker.setLatLng(latlng);
       }
     
-      // Rotate the whole marker container
-      const markerEl = userMarker.getElement();
-      if (markerEl) {
-        markerEl.style.transform = `rotate(${currentHeading}deg)`;
-        markerEl.style.transformOrigin = "50% 50%"; // center of marker
+      const rotateEl = userMarker.getElement().querySelector(".user-rotate");
+      if (rotateEl) {
+        rotateEl.style.transform = `rotate(${currentHeading}deg)`;
       }
     }
     
-    // Device orientation
     window.addEventListener("deviceorientationabsolute", e => {
       if (userMarker && e.alpha !== null) {
         currentHeading = e.alpha;
-    
-        // Rotate the whole marker container
-        const markerEl = userMarker.getElement();
-        if (markerEl) {
-          markerEl.style.transform = `rotate(${currentHeading}deg)`;
-          markerEl.style.transformOrigin = "50% 50%";
+        const rotateEl = userMarker.getElement().querySelector(".user-rotate");
+        if (rotateEl) {
+          rotateEl.style.transform = `rotate(${currentHeading}deg)`;
         }
       }
     });
     
-    // Geolocation (continuous tracking)
+    let firstUpdate = true;
+
     if (navigator.geolocation) {
       navigator.geolocation.watchPosition(pos => {
         const latlng = [pos.coords.latitude, pos.coords.longitude];
         addUserLocation({ lat: latlng[0], lng: latlng[1] });
     
-        // Optionally keep centering map on user
-        map.setView(latlng, 18);
+        if (firstUpdate) {
+          map.setView(latlng, 18); // only the first time
+          firstUpdate = false;
+        }
       },
       err => console.warn("Geolocation failed:", err.message),
       {
-        enableHighAccuracy: true, // better accuracy
+        enableHighAccuracy: true,
         maximumAge: 0,
         timeout: 5000
       });
@@ -187,6 +191,7 @@
     </script>
 </body>
 </html>
+
 
 
 
