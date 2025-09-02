@@ -128,13 +128,22 @@
   });
 
 
-    // Geolocation
+    // Geolocation (continuous tracking)
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(pos => {
+      navigator.geolocation.watchPosition(pos => {
         const latlng = [pos.coords.latitude, pos.coords.longitude];
-        map.setView(latlng, 18);
         addUserLocation({ lat: latlng[0], lng: latlng[1] });
-      }, err => console.warn("Geolocation failed:", err.message));
+
+        // Optionally keep centering map on user
+        // comment this out if you want free panning
+        map.setView(latlng, 18);
+      },
+      err => console.warn("Geolocation failed:", err.message),
+      {
+        enableHighAccuracy: true, // better accuracy
+        maximumAge: 0,
+        timeout: 5000
+      });
     }
 
     // Handle houses
@@ -175,6 +184,7 @@
     </script>
 </body>
 </html>
+
 
 
 
