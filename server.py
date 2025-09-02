@@ -21,17 +21,29 @@ def on_connect():
     print("Client connected")
     emit("update_houses", houses)
 
-@socketio.on("toggle_house")
-def toggle_house(data):
+@socketio.on("add_house")
+def add_house(data):
     """Toggle a house's visited state"""
+    house_id = data.get("house_id")
+    lat = data.get("lat")
+    lng = data.get("lng")
+    if house_id is None:
+        return
+
+    houses[house_id] = {"house_id": house_id, "lat": lat, "lng": lng}
+
+    # Broadcast updated houses to all clients
+    socketio.emit("update_houses", houses)
+
+@socketio.on("remove_house")
+def remove_house(data):
     house_id = data.get("house_id")
     if house_id is None:
         return
 
-    # Toggle visited state
-    houses[house_id] = not houses.get(house_id, False)
+    if house_id in houses:
+        del houses[house_id]
 
-    # Broadcast updated houses to all clients
     socketio.emit("update_houses", houses)
 
 @socketio.on("reset_all")
@@ -42,3 +54,4 @@ def reset_all():
 
 if __name__ == "__main__":
     socketio.run(app, debug=True, host="0.0.0.0", port=5000)
+
