@@ -15,30 +15,37 @@ houses = {}
 
 def save_houses():
     """Save the current in-memory houses dict to PostgreSQL."""
-    if not houses:
-        return
-
     try:
         conn = psycopg2.connect(DATABASE_URL)
         cur = conn.cursor()
 
         # Create table if it doesn't exist
         cur.execute("""
-                CREATE TABLE IF NOT EXISTS houses (
-                    house_id TEXT PRIMARY KEY,
-                    lat DOUBLE PRECISION NOT NULL,
-                    lng DOUBLE PRECISION NOT NULL
-                )
-            """)
+            CREATE TABLE IF NOT EXISTS houses (
+                house_id TEXT PRIMARY KEY,
+                lat DOUBLE PRECISION NOT NULL,
+                lng DOUBLE PRECISION NOT NULL
+            )
+        """)
+
+        # Delete rows that are no longer in the in-memory dict
+        if houses:
+            cur.execute(
+                "DELETE FROM houses WHERE house_id NOT IN %s",
+                (tuple(houses.keys()),)
+            )
+        else:
+            # If no houses, clear the table
+            cur.execute("DELETE FROM houses")
 
         # Insert or update each house
         for h_id, data in houses.items():
             cur.execute("""
-                    INSERT INTO houses (house_id, lat, lng)
-                    VALUES (%s, %s, %s)
-                    ON CONFLICT (house_id)
-                    DO UPDATE SET lat = EXCLUDED.lat, lng = EXCLUDED.lng
-                """, (h_id, data['lat'], data['lng']))
+                INSERT INTO houses (house_id, lat, lng)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (house_id)
+                DO UPDATE SET lat = EXCLUDED.lat, lng = EXCLUDED.lng
+            """, (h_id, data['lat'], data['lng']))
 
         conn.commit()
         cur.close()
@@ -122,4 +129,5 @@ def reset_all():
 
 if __name__ == "__main__":
     socketio.run(app, debug=True, host="0.0.0.0", port=5000)
+
 
