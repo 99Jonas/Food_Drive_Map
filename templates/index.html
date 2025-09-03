@@ -286,6 +286,12 @@
             opacity: 1,
             fillOpacity: 0.8
           }).addTo(map);
+
+          marker.on("click", () => {
+            socket.emit("house_house", { house_id, lat, lng });
+          });
+
+          markers[house_id] = marker;
         }
       });
 
@@ -324,6 +330,7 @@
     </script>
 </body>
 </html>
+
 
 
 
