@@ -223,10 +223,10 @@
 
     map.on("click", e => {
       const clickLatLng = e.latlng;
-    
+
       let tooClose = false;
       let blockingHouse = null;
-    
+
       // Check each existing marker
       Object.entries(markers).forEach(([house_id, marker]) => {
         const markerLatLng = marker.getLatLng();
@@ -234,47 +234,23 @@
         if (dist < HOUSE_TOLERANCE) {
           tooClose = true;
           blockingHouse = {
-            house_id,
+            house_id: `${markerLatLng.lat.toFixed(5)},${markerLatLng.lng.toFixed(5)}`,
             lat: markerLatLng.lat,
             lng: markerLatLng.lng
           };
         }
       });
-    
+
       if (!tooClose) {
-        // Create a new house marker immediately
         const house_id = `${clickLatLng.lat.toFixed(5)},${clickLatLng.lng.toFixed(5)}`;
-        
-        const newMarker = L.circleMarker([clickLatLng.lat, clickLatLng.lng], {
-          radius: 8,
-          fillColor: "green",
-          color: "#000",
-          weight: 1,
-          opacity: 1,
-          fillOpacity: 0.8
-        }).addTo(map);
-    
-        // Save to local markers object
-        markers[house_id] = newMarker;
-    
-        // Send to server
         socket.emit("add_house", {
           house_id,
           lat: clickLatLng.lat,
           lng: clickLatLng.lng
         });
       } else if (blockingHouse) {
-        // Remove marker locally
-        const markerToRemove = markers[blockingHouse.house_id];
-        if (markerToRemove) {
-          map.removeLayer(markerToRemove);
-          delete markers[blockingHouse.house_id];
-        }
-    
-        removedHouses.push(blockingHouse);
+        removedHouses.push({house_id: blockingHouse.house_id, lat: blockingHouse.lat, lng: blockingHouse.lng});
         updateUndoButton();
-    
-        // Notify server
         socket.emit("remove_house", {
           house_id: blockingHouse.house_id,
           lat: blockingHouse.lat,
@@ -348,6 +324,7 @@
     </script>
 </body>
 </html>
+
 
 
 
