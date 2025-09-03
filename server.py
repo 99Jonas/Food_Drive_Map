@@ -102,7 +102,6 @@ def add_house(data):
         return
 
     houses[house_id] = {"house_id": house_id, "lat": lat, "lng": lng}
-    save_houses()
 
 @socketio.on("remove_house")
 def remove_house(data):
@@ -112,18 +111,17 @@ def remove_house(data):
 
     if house_id in houses:
         del houses[house_id]
-    save_houses()
 
 @socketio.on("reset_houses")
 def reset_all():
     """Optional: reset all houses to unvisited"""
     houses.clear()
     socketio.emit("update_houses", houses)
-    save_houses()
 
 def broadcast_houses_periodically():
     """Background task that emits the current houses every 30 seconds."""
     while True:
+        save_houses()
         socketio.emit("update_houses", houses)
         socketio.sleep(30)  # Sleep without blocking the server
 
@@ -133,3 +131,4 @@ if __name__ == "__main__":
     
     socketio.run(app, host="0.0.0.0", port=5000)
     
+
