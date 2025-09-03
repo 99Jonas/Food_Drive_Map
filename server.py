@@ -90,7 +90,6 @@ def index():
 
 @socketio.on("connect")
 def on_connect():
-    print("Client connected")
     emit("update_houses", houses)
 
 @socketio.on("add_house")
@@ -103,9 +102,6 @@ def add_house(data):
         return
 
     houses[house_id] = {"house_id": house_id, "lat": lat, "lng": lng}
-
-    # Broadcast updated houses to all clients
-    socketio.emit("update_houses", houses)
     save_houses()
 
 @socketio.on("remove_house")
@@ -116,8 +112,6 @@ def remove_house(data):
 
     if house_id in houses:
         del houses[house_id]
-
-    socketio.emit("update_houses", houses)
     save_houses()
 
 @socketio.on("reset_houses")
@@ -127,7 +121,15 @@ def reset_all():
     socketio.emit("update_houses", houses)
     save_houses()
 
+def broadcast_houses_periodically():
+    """Background task that emits the current houses every 30 seconds."""
+    while True:
+        socketio.emit("update_houses", houses)
+        socketio.sleep(30)  # Sleep without blocking the server
+
 if __name__ == "__main__":
-    socketio.run(app, debug=True, host="0.0.0.0", port=5000)
-
-
+    # Start background task for periodic updates
+    socketio.start_background_task(broadcast_houses_periodically)
+    
+    socketio.run(app, host="0.0.0.0", port=5000)
+    
