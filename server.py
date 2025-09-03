@@ -116,6 +116,7 @@ def remove_house(data):
 def reset_all():
     """Optional: reset all houses to unvisited"""
     houses.clear()
+    save_houses()
     socketio.emit("update_houses", houses)
 
 def broadcast_houses_periodically():
@@ -130,5 +131,3 @@ if __name__ == "__main__":
     socketio.start_background_task(broadcast_houses_periodically)
     
     socketio.run(app, host="0.0.0.0", port=5000)
-    
-
