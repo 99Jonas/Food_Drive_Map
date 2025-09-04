@@ -281,6 +281,9 @@
           lng: blockingHouse.lng
         });
       }
+      // Update counter
+      const greenCount = Object.keys(houses).length;
+      document.getElementById("green-counter").textContent = `Houses Visited: ${greenCount}`;
     });
 
     socket.on("update_houses", houses => {
@@ -354,3 +357,4 @@
     </script>
 </body>
 </html>
+
